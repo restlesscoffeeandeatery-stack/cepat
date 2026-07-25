@@ -65,7 +65,8 @@
     display:flex; justify-content:space-between; gap:10px; font-size:12.5px;
     background:var(--panel-2); border-radius:8px; padding:8px 10px; color:var(--muted);
   }
-  .fileitem b{ color:var(--text); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fileitem b{ color:var(--text); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .rmBtn{ color:var(--danger); cursor:pointer; padding:0 2px; font-weight:700; flex-shrink:0; }
 
   button.primary{
     width:100%; margin-top:16px; padding:14px; border:none; border-radius:12px;
@@ -147,6 +148,8 @@
       </div>
       <input type="file" id="fileInput" multiple accept="image/*,video/*" />
       <div class="filelist" id="fileList"></div>
+      <div id="fileSummary" style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center;"></div>
+      <button class="ghost hidden" id="btnAddMore">+ Tambah file lagi</button>
       <button class="primary" id="btnCreateCode" disabled>Buat Kode Pairing</button>
     </div>
 
@@ -234,20 +237,42 @@ const fileList = document.getElementById("fileList");
 const btnCreateCode = document.getElementById("btnCreateCode");
 
 dropzone.addEventListener("click", () => fileInput.click());
+document.getElementById("btnAddMore").addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => {
-  selectedFiles = Array.from(fileInput.files);
+  // Tambahkan ke daftar yang sudah ada (bukan menggantinya), supaya user bisa
+  // buka dialog pilih file berkali-kali (misal galeri lalu video terpisah)
+  // dan tetap terkumpul jadi satu antrean kirim.
+  const incoming = Array.from(fileInput.files);
+  for (const f of incoming) {
+    const dup = selectedFiles.some(sf => sf.name === f.name && sf.size === f.size && sf.lastModified === f.lastModified);
+    if (!dup) selectedFiles.push(f);
+  }
+  fileInput.value = ""; // reset supaya bisa pilih ulang file yang sama / buka dialog lagi
   renderFileList();
   btnCreateCode.disabled = selectedFiles.length === 0;
 });
 
 function renderFileList() {
   fileList.innerHTML = "";
-  selectedFiles.forEach(f => {
+  selectedFiles.forEach((f, idx) => {
     const row = document.createElement("div");
     row.className = "fileitem";
-    row.innerHTML = `<b>${escapeHtml(f.name)}</b><span>${humanSize(f.size)}</span>`;
+    row.innerHTML = `<b>${escapeHtml(f.name)}</b><span>${humanSize(f.size)}</span><span class="rmBtn" data-idx="${idx}">✕</span>`;
     fileList.appendChild(row);
   });
+  document.querySelectorAll(".rmBtn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = Number(btn.dataset.idx);
+      selectedFiles.splice(idx, 1);
+      renderFileList();
+      btnCreateCode.disabled = selectedFiles.length === 0;
+    });
+  });
+  document.getElementById("fileSummary").textContent = selectedFiles.length
+    ? `${selectedFiles.length} file dipilih · ${humanSize(selectedFiles.reduce((a, f) => a + f.size, 0))}`
+    : "";
+  document.getElementById("btnAddMore").classList.toggle("hidden", selectedFiles.length === 0);
 }
 
 function humanSize(bytes) {
