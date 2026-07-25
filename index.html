@@ -210,9 +210,9 @@
 const SIGNAL_HOST = "kirim-cepat-signal.rekap-keuangan.workers.dev";
 
 const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
-const CHUNK_SIZE = 64 * 1024;          // 64KB per chunk — aman untuk semua browser mobile
-const BUFFERED_AMOUNT_HIGH = 8 * 1024 * 1024; // pause kirim kalau buffer > 8MB
-const BUFFERED_AMOUNT_LOW = 1 * 1024 * 1024;
+const CHUNK_SIZE = 256 * 1024;         // 256KB per chunk — lebih sedikit overhead dibanding 64KB, masih aman di iOS/Android modern
+const BUFFERED_AMOUNT_HIGH = 16 * 1024 * 1024; // pause kirim kalau buffer > 16MB
+const BUFFERED_AMOUNT_LOW = 4 * 1024 * 1024;   // lanjut kirim begitu buffer turun ke 4MB (jangan sampai channel "kehabisan napas")
 
 let selectedFiles = [];
 let ws, pc, dc;
