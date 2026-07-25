@@ -177,7 +177,7 @@
   <div id="panel-receive" class="hidden">
     <div id="receive-entry">
       <div class="label" style="font-size:12px;color:var(--muted);margin-bottom:8px;">Masukin kode dari HP pengirim</div>
-      <input class="codeinput" id="codeInput" maxlength="6" placeholder="------" autocapitalize="characters" autocomplete="off" />
+      <input class="codeinput" id="codeInput" maxlength="6" placeholder="------" autocapitalize="characters" autocomplete="off" enterkeyhint="go" inputmode="text" />
       <button class="primary" id="btnJoin">Sambungkan</button>
     </div>
 
@@ -319,6 +319,13 @@ document.getElementById("btnJoin").addEventListener("click", () => {
   document.getElementById("receive-entry").classList.add("hidden");
   document.getElementById("receive-pairing").classList.remove("hidden");
   connectSignaling(roomCode, false);
+});
+
+document.getElementById("codeInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("btnJoin").click();
+  }
 });
 
 // ================= SIGNALING (via Cloudflare Worker) =================
