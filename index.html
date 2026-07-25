@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Kirim Cepat — transfer langsung antar HP</title>
+<style>
+  :root{
+    --bg:#0A0E14;
+    --panel:#121822;
+    --panel-2:#182130;
+    --line:#232D3D;
+    --text:#E7EDF4;
+    --muted:#7E8896;
+    --signal:#4FE3C1;
+    --signal-dim:#2C7A6C;
+    --amber:#F5A623;
+    --danger:#E5484D;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    display:flex; align-items:center; justify-content:center; min-height:100dvh;
+    padding:20px; -webkit-tap-highlight-color:transparent;
+  }
+  .card{
+    width:100%; max-width:440px; background:var(--panel);
+    border:1px solid var(--line); border-radius:20px; padding:28px 24px 24px;
+    position:relative; overflow:hidden;
+  }
+  .card::before{
+    content:""; position:absolute; top:-60px; right:-60px; width:180px; height:180px;
+    background:radial-gradient(circle, rgba(79,227,193,0.14), transparent 70%);
+    pointer-events:none;
+  }
+  h1{
+    font-size:19px; letter-spacing:-0.01em; margin:0 0 4px; font-weight:700;
+  }
+  .sub{ color:var(--muted); font-size:13px; margin:0 0 22px; line-height:1.5; }
+
+  .tabs{ display:flex; gap:6px; background:var(--panel-2); border-radius:12px; padding:4px; margin-bottom:20px; }
+  .tab{
+    flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:14px; font-weight:600;
+    color:var(--muted); cursor:pointer; user-select:none; transition:all .15s ease;
+  }
+  .tab.active{ background:var(--signal); color:#04211B; }
+
+  .hidden{ display:none !important; }
+
+  .dropzone{
+    border:1.5px dashed var(--line); border-radius:14px; padding:26px 16px; text-align:center;
+    cursor:pointer; transition:border-color .15s ease, background .15s ease;
+  }
+  .dropzone:active{ background:var(--panel-2); }
+  .dropzone .icon{ font-size:26px; margin-bottom:8px; }
+  .dropzone .txt{ font-size:14px; color:var(--muted); }
+  .dropzone .txt b{ color:var(--text); }
+  input[type=file]{ display:none; }
+
+  .filelist{ margin-top:14px; display:flex; flex-direction:column; gap:6px; max-height:150px; overflow-y:auto; }
+  .fileitem{
+    display:flex; justify-content:space-between; gap:10px; font-size:12.5px;
+    background:var(--panel-2); border-radius:8px; padding:8px 10px; color:var(--muted);
+  }
+  .fileitem b{ color:var(--text); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  button.primary{
+    width:100%; margin-top:16px; padding:14px; border:none; border-radius:12px;
+    background:var(--signal); color:#04211B; font-weight:700; font-size:15px;
+    cursor:pointer; transition:transform .1s ease, opacity .15s ease;
+  }
+  button.primary:disabled{ opacity:.4; cursor:not-allowed; }
+  button.primary:active:not(:disabled){ transform:scale(0.98); }
+
+  button.ghost{
+    width:100%; margin-top:10px; padding:12px; border:1px solid var(--line); border-radius:12px;
+    background:transparent; color:var(--muted); font-size:13px; cursor:pointer;
+  }
+
+  .codebox{ text-align:center; margin-top:18px; }
+  .codebox .label{ font-size:12px; color:var(--muted); margin-bottom:8px; }
+  .codebox .code{
+    font-family:var(--mono); font-size:34px; letter-spacing:6px; font-weight:700;
+    color:var(--signal); background:var(--panel-2); border-radius:12px; padding:14px 8px;
+  }
+
+  input.codeinput{
+    width:100%; font-family:var(--mono); font-size:26px; letter-spacing:8px; text-align:center;
+    text-transform:uppercase; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--text); border-radius:12px; padding:14px 8px; font-weight:700;
+  }
+  input.codeinput:focus{ outline:none; border-color:var(--signal); }
+
+  .link-row{
+    display:flex; align-items:center; justify-content:center; gap:10px; margin:22px 0 6px;
+  }
+  .node{ width:11px; height:11px; border-radius:50%; background:var(--line); transition:background .2s; flex-shrink:0; }
+  .node.on{ background:var(--signal); box-shadow:0 0 10px rgba(79,227,193,0.7); }
+  .pulseline{ flex:1; height:2px; background:var(--line); position:relative; border-radius:2px; overflow:hidden; }
+  .pulseline .fill{ position:absolute; inset:0; width:0%; background:var(--signal); transition:width .3s ease; }
+  .pulseline.active .fill{ animation:sweep 1.4s ease-in-out infinite; }
+  @keyframes sweep{ 0%{width:0%;} 50%{width:100%;} 100%{width:0%;} }
+
+  .status{ text-align:center; font-size:13px; color:var(--muted); margin-top:2px; min-height:18px; }
+  .status.ok{ color:var(--signal); }
+  .status.err{ color:var(--danger); }
+
+  .progresswrap{ margin-top:18px; }
+  .pbar{ height:8px; background:var(--panel-2); border-radius:6px; overflow:hidden; }
+  .pbar .fill{ height:100%; width:0%; background:var(--signal); transition:width .15s ease; }
+  .pmeta{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-top:7px; font-family:var(--mono); }
+
+  .received{ margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+  .rxitem{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--panel-2); border-radius:10px; padding:10px 12px;
+  }
+  .rxitem span{ font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rxitem a{
+    font-size:12px; font-weight:700; color:#04211B; background:var(--signal);
+    padding:6px 10px; border-radius:8px; text-decoration:none; flex-shrink:0;
+  }
+
+  footer{ margin-top:20px; text-align:center; font-size:11px; color:var(--muted); opacity:.6; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Kirim Cepat</h1>
+  <p class="sub">Kirim foto & video langsung antar HP lewat WiFi lokal — file tidak lewat server mana pun, cuma dua HP ini yang saling ngobrol.</p>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="send">Kirim</div>
+    <div class="tab" data-tab="receive">Terima</div>
+  </div>
+
+  <!-- SEND PANEL -->
+  <div id="panel-send">
+    <div id="send-picker">
+      <div class="dropzone" id="dropzone">
+        <div class="icon">📤</div>
+        <div class="txt"><b>Pilih foto / video</b><br>ketuk untuk membuka galeri</div>
+      </div>
+      <input type="file" id="fileInput" multiple accept="image/*,video/*" />
+      <div class="filelist" id="fileList"></div>
+      <button class="primary" id="btnCreateCode" disabled>Buat Kode Pairing</button>
+    </div>
+
+    <div id="send-pairing" class="hidden">
+      <div class="codebox">
+        <div class="label">Suruh HP satunya buka Kirim Cepat, tab Terima, lalu masukin kode ini:</div>
+        <div class="code" id="roomCodeDisplay">------</div>
+      </div>
+      <div class="link-row">
+        <div class="node" id="nodeA"></div>
+        <div class="pulseline" id="pulseSend"><div class="fill"></div></div>
+        <div class="node" id="nodeB"></div>
+      </div>
+      <div class="status" id="sendStatus">Menunggu HP lain masuk kode…</div>
+
+      <div class="progresswrap hidden" id="sendProgressWrap">
+        <div class="pbar"><div class="fill" id="sendProgressFill"></div></div>
+        <div class="pmeta"><span id="sendProgressText">0%</span><span id="sendSpeedText"></span></div>
+      </div>
+      <button class="ghost" id="btnCancelSend">Batalkan</button>
+    </div>
+  </div>
+
+  <!-- RECEIVE PANEL -->
+  <div id="panel-receive" class="hidden">
+    <div id="receive-entry">
+      <div class="label" style="font-size:12px;color:var(--muted);margin-bottom:8px;">Masukin kode dari HP pengirim</div>
+      <input class="codeinput" id="codeInput" maxlength="6" placeholder="------" autocapitalize="characters" autocomplete="off" />
+      <button class="primary" id="btnJoin">Sambungkan</button>
+    </div>
+
+    <div id="receive-pairing" class="hidden">
+      <div class="link-row">
+        <div class="node" id="nodeA2"></div>
+        <div class="pulseline" id="pulseRecv"><div class="fill"></div></div>
+        <div class="node" id="nodeB2"></div>
+      </div>
+      <div class="status" id="recvStatus">Menyambungkan…</div>
+
+      <div class="progresswrap hidden" id="recvProgressWrap">
+        <div class="pbar"><div class="fill" id="recvProgressFill"></div></div>
+        <div class="pmeta"><span id="recvProgressText">0%</span><span id="recvSpeedText"></span></div>
+      </div>
+
+      <div class="received" id="receivedList"></div>
+      <button class="ghost" id="btnCancelRecv">Selesai / Putuskan</button>
+    </div>
+  </div>
+
+  <footer>Peer-to-peer via WebRTC · sinyal pairing lewat Cloudflare Worker</footer>
+</div>
+
+<script>
+/* ====================== KONFIGURASI ======================
+   Ganti dengan URL Worker kamu sendiri setelah deploy (lihat README.md).
+   Contoh: "kirim-cepat-signal.namamu.workers.dev"
+============================================================ */
+const SIGNAL_HOST = "kirim-cepat-signal.YOUR-SUBDOMAIN.workers.dev";
+
+const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
+const CHUNK_SIZE = 64 * 1024;          // 64KB per chunk — aman untuk semua browser mobile
+const BUFFERED_AMOUNT_HIGH = 8 * 1024 * 1024; // pause kirim kalau buffer > 8MB
+const BUFFERED_AMOUNT_LOW = 1 * 1024 * 1024;
+
+let selectedFiles = [];
+let ws, pc, dc;
+let roomCode = "";
+let isSender = false;
+
+// ---------- Tabs ----------
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    const isSend = t.dataset.tab === "send";
+    document.getElementById("panel-send").classList.toggle("hidden", !isSend);
+    document.getElementById("panel-receive").classList.toggle("hidden", isSend);
+  });
+});
+
+// ---------- File picking (sender) ----------
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("fileInput");
+const fileList = document.getElementById("fileList");
+const btnCreateCode = document.getElementById("btnCreateCode");
+
+dropzone.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", () => {
+  selectedFiles = Array.from(fileInput.files);
+  renderFileList();
+  btnCreateCode.disabled = selectedFiles.length === 0;
+});
+
+function renderFileList() {
+  fileList.innerHTML = "";
+  selectedFiles.forEach(f => {
+    const row = document.createElement("div");
+    row.className = "fileitem";
+    row.innerHTML = `<b>${escapeHtml(f.name)}</b><span>${humanSize(f.size)}</span>`;
+    fileList.appendChild(row);
+  });
+}
+
+function humanSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 ** 2) return (bytes / 1024).toFixed(0) + " KB";
+  if (bytes < 1024 ** 3) return (bytes / 1024 ** 2).toFixed(1) + " MB";
+  return (bytes / 1024 ** 3).toFixed(2) + " GB";
+}
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// ---------- Room code ----------
+function makeRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // tanpa karakter yg gampang ketuker (0/O, 1/I)
+  let s = "";
+  for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function wsUrl(room) {
+  return `wss://${SIGNAL_HOST}/ws?room=${room}`;
+}
+
+// ================= SEND FLOW =================
+btnCreateCode.addEventListener("click", () => {
+  isSender = true;
+  roomCode = makeRoomCode();
+  document.getElementById("roomCodeDisplay").textContent = roomCode;
+  document.getElementById("send-picker").classList.add("hidden");
+  document.getElementById("send-pairing").classList.remove("hidden");
+  connectSignaling(roomCode, true);
+});
+
+document.getElementById("btnCancelSend").addEventListener("click", () => location.reload());
+document.getElementById("btnCancelRecv").addEventListener("click", () => location.reload());
+
+// ================= RECEIVE FLOW =================
+document.getElementById("btnJoin").addEventListener("click", () => {
+  const code = document.getElementById("codeInput").value.trim().toUpperCase();
+  if (code.length < 4) return;
+  isSender = false;
+  roomCode = code;
+  document.getElementById("receive-entry").classList.add("hidden");
+  document.getElementById("receive-pairing").classList.remove("hidden");
+  connectSignaling(roomCode, false);
+});
+
+// ================= SIGNALING (via Cloudflare Worker) =================
+function connectSignaling(room, asSender) {
+  ws = new WebSocket(wsUrl(room));
+
+  ws.addEventListener("open", () => {
+    setNode(asSender ? "nodeA" : "nodeA2", true);
+    setStatus(asSender, "Terhubung ke server sinyal, menunggu pasangan…");
+    if (!asSender) ws.send(JSON.stringify({ type: "hello" }));
+  });
+
+  ws.addEventListener("message", async (event) => {
+    const msg = JSON.parse(event.data);
+
+    if (msg.type === "hello" && asSender) {
+      // Peer sudah join room -> mulai bikin koneksi WebRTC sebagai offerer
+      setStatus(true, "Pasangan ditemukan, menyambungkan…");
+      setPulse("pulseSend", true);
+      await startPeerConnection(true);
+    }
+
+    if (msg.type === "offer" && !asSender) {
+      setStatus(false, "Menerima sambungan…");
+      setPulse("pulseRecv", true);
+      await startPeerConnection(false);
+      await pc.setRemoteDescription({ type: "offer", sdp: msg.sdp });
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      ws.send(JSON.stringify({ type: "answer", sdp: answer.sdp }));
+    }
+
+    if (msg.type === "answer" && asSender) {
+      await pc.setRemoteDescription({ type: "answer", sdp: msg.sdp });
+    }
+
+    if (msg.type === "ice") {
+      try { await pc.addIceCandidate(msg.candidate); } catch (e) { /* ignore */ }
+    }
+  });
+
+  ws.addEventListener("close", () => {
+    if (!dc || dc.readyState !== "open") setStatus(asSender, "Koneksi sinyal terputus.", true);
+  });
+  ws.addEventListener("error", () => setStatus(asSender, "Gagal konek ke server sinyal.", true));
+}
+
+function setNode(id, on) { document.getElementById(id).classList.toggle("on", on); }
+function setPulse(id, on) { document.getElementById(id).classList.toggle("active", on); }
+function setStatus(asSender, text, isErr = false) {
+  const el = document.getElementById(asSender ? "sendStatus" : "recvStatus");
+  el.textContent = text;
+  el.className = "status" + (isErr ? " err" : "");
+}
+
+// ================= WEBRTC PEER =================
+async function startPeerConnection(asOfferer) {
+  pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+  pc.onicecandidate = (e) => {
+    if (e.candidate) ws.send(JSON.stringify({ type: "ice", candidate: e.candidate }));
+  };
+
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "connected") {
+      setNode(asOfferer ? "nodeB" : "nodeB2", true);
+      setPulse(asOfferer ? "pulseSend" : "pulseRecv", false);
+      setStatus(asOfferer, "Tersambung langsung! Mengirim file…");
+      document.getElementById(asOfferer ? "sendStatus" : "recvStatus").classList.add("ok");
+    }
+    if (["failed", "disconnected", "closed"].includes(pc.connectionState)) {
+      setStatus(asOfferer, "Koneksi terputus.", true);
+    }
+  };
+
+  if (asOfferer) {
+    dc = pc.createDataChannel("files", { ordered: true });
+    setupSenderChannel(dc);
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    ws.send(JSON.stringify({ type: "offer", sdp: offer.sdp }));
+  } else {
+    pc.ondatachannel = (e) => {
+      dc = e.channel;
+      setupReceiverChannel(dc);
+    };
+  }
+}
+
+// ================= SENDER: streaming files over the data channel =================
+function setupSenderChannel(channel) {
+  channel.binaryType = "arraybuffer";
+  channel.bufferedAmountLowThreshold = BUFFERED_AMOUNT_LOW;
+
+  channel.addEventListener("open", async () => {
+    document.getElementById("sendProgressWrap").classList.remove("hidden");
+    const totalBytes = selectedFiles.reduce((a, f) => a + f.size, 0);
+    let sentBytes = 0;
+    const startTime = Date.now();
+
+    for (const file of selectedFiles) {
+      channel.send(JSON.stringify({ type: "meta", name: file.name, size: file.size, mime: file.type }));
+
+      const buf = await file.arrayBuffer();
+      let offset = 0;
+      while (offset < buf.byteLength) {
+        if (channel.bufferedAmount > BUFFERED_AMOUNT_HIGH) {
+          await waitForBufferedAmountLow(channel);
+        }
+        const slice = buf.slice(offset, offset + CHUNK_SIZE);
+        channel.send(slice);
+        offset += slice.byteLength;
+        sentBytes += slice.byteLength;
+        updateProgress("send", sentBytes, totalBytes, startTime);
+      }
+    }
+    channel.send(JSON.stringify({ type: "done" }));
+    document.getElementById("sendStatus").textContent = "Semua file terkirim ✅";
+  });
+}
+
+function waitForBufferedAmountLow(channel) {
+  return new Promise(resolve => {
+    channel.addEventListener("bufferedamountlow", function handler() {
+      channel.removeEventListener("bufferedamountlow", handler);
+      resolve();
+    });
+  });
+}
+
+// ================= RECEIVER: reassembling incoming files =================
+function setupReceiverChannel(channel) {
+  channel.binaryType = "arraybuffer";
+  let currentMeta = null;
+  let chunks = [];
+  let receivedBytes = 0;
+  let totalKnownBytes = 0;
+  let startTime = Date.now();
+
+  channel.addEventListener("open", () => {
+    document.getElementById("recvProgressWrap").classList.remove("hidden");
+    startTime = Date.now();
+  });
+
+  channel.addEventListener("message", (event) => {
+    if (typeof event.data === "string") {
+      const msg = JSON.parse(event.data);
+      if (msg.type === "meta") {
+        currentMeta = msg;
+        chunks = [];
+        totalKnownBytes += msg.size;
+      } else if (msg.type === "done") {
+        document.getElementById("recvStatus").textContent = "Semua file diterima ✅";
+      }
+      return;
+    }
+    // binary chunk
+    chunks.push(event.data);
+    receivedBytes += event.data.byteLength;
+    updateProgress("recv", receivedBytes, totalKnownBytes, startTime);
+
+    const receivedForCurrent = chunks.reduce((a, c) => a + c.byteLength, 0);
+    if (currentMeta && receivedForCurrent >= currentMeta.size) {
+      const blob = new Blob(chunks, { type: currentMeta.mime || "application/octet-stream" });
+      addReceivedFile(currentMeta.name, blob);
+      currentMeta = null;
+      chunks = [];
+    }
+  });
+}
+
+function addReceivedFile(name, blob) {
+  const url = URL.createObjectURL(blob);
+  const row = document.createElement("div");
+  row.className = "rxitem";
+  row.innerHTML = `<span>${escapeHtml(name)}</span><a download="${escapeHtml(name)}" href="${url}">Simpan</a>`;
+  document.getElementById("receivedList").appendChild(row);
+}
+
+// ================= progress UI =================
+function updateProgress(kind, done, total, startTime) {
+  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  const elapsed = (Date.now() - startTime) / 1000;
+  const speed = elapsed > 0 ? done / elapsed : 0;
+  document.getElementById(kind === "send" ? "sendProgressFill" : "recvProgressFill").style.width = pct + "%";
+  document.getElementById(kind === "send" ? "sendProgressText" : "recvProgressText").textContent = pct + "%";
+  document.getElementById(kind === "send" ? "sendSpeedText" : "recvSpeedText").textContent = humanSize(speed) + "/s";
+}
+</script>
+</body>
+</html>
